@@ -1,0 +1,48 @@
+name: Build Hex iOS unsigned IPA
+on:
+  workflow_dispatch:
+jobs:
+  build-ios:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: |
+          ls /Applications | grep -i xcode
+          sudo xcode-select -s /Applications/Xcode_26.2.app || sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Rebrand bundle IDs to your own prefix
+        env:
+          BUNDLE_PREFIX: com.youyudebaleite.hex
+        run: |
+          cd ios
+          grep -r "com.kitlangton.hex" . || true
+          find . -type f \( -name "*.yml" -o -name "*.entitlements" -o -name "*.swift" -o -name "*.plist" \) -exec sed -i "s/com\.kitlangton\.hex/$BUNDLE_PREFIX/g" {} +
+          grep -r "$BUNDLE_PREFIX" project.yml HEXMobile/HEXMobile.entitlements HEXKeyboard/HEXKeyboard.entitlements || true
+          sed -i "s/DEVELOPMENT_TEAM: QC99C9JE59/DEVELOPMENT_TEAM: ''/" project.yml
+      - name: Generate Xcode project
+        run: |
+          cd ios
+          xcodegen generate
+          ls -lh *.xcodeproj
+      - name: Build unsigned .app
+        run: |
+          cd ios
+          xcodebuild -project HEXMobile.xcodeproj -scheme HEXMobile -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="" | tail -50
+          ls -lh build/Build/Products/Release-iphoneos/
+      - name: Package unsigned IPA
+        run: |
+          cd ios
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/HEX.app Payload/
+          zip -r HEX-unsigned.ipa Payload
+          ls -lh HEX-unsigned.ipa
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HEX-unsigned-ipa
+          path: ios/HEX-unsigned.ipa
+          if-no-files-found: error
