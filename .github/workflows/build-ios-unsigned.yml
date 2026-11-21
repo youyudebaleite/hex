@@ -1,3 +1,4 @@
+---
 name: Build Hex iOS unsigned IPA
 on:
   workflow_dispatch:
@@ -20,9 +21,9 @@ jobs:
         run: |
           cd ios
           grep -r "com.kitlangton.hex" . || true
-          find . -type f \( -name "*.yml" -o -name "*.entitlements" -o -name "*.swift" -o -name "*.plist" \) -exec sed -i "s/com\.kitlangton\.hex/$BUNDLE_PREFIX/g" {} +
+          find . -type f \( -name "*.yml" -o -name "*.entitlements" -o -name "*.swift" -o -name "*.plist" \) -exec sed -i '' "s/com\.kitlangton\.hex/$BUNDLE_PREFIX/g" {} +
           grep -r "$BUNDLE_PREFIX" project.yml HEXMobile/HEXMobile.entitlements HEXKeyboard/HEXKeyboard.entitlements || true
-          sed -i "s/DEVELOPMENT_TEAM: QC99C9JE59/DEVELOPMENT_TEAM: ''/" project.yml
+          sed -i '' "s/DEVELOPMENT_TEAM: QC99C9JE59/DEVELOPMENT_TEAM: ''/" project.yml
       - name: Generate Xcode project
         run: |
           cd ios
